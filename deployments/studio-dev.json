@@ -1,0 +1,13 @@
+{
+  "network": "studio-dev",
+  "chainId": 61997,
+  "rpc": "https://studio-dev.genlayer.com/api",
+  "contract": "0x29d3A94bEC1A28F61bd7BA4Cbc47Ba6878Ef259B",
+  "deployer": "0x9e87Cadef97d0BF53BD72f55242a37c21318a230",
+  "transaction": "0x24c3d615319ae941bf026640feceb25bdcb0af85ea6623d05a38d35c85ac1efc",
+  "bondWei": "10000000000000000",
+  "sampleProofCid": "QmaqzaF4WtJiqJPTQCUvJVRWHqCT6m4YpkB4t5jpLNcw4z",
+  "sampleProofSha256": "82df9d38899d9e884e4711bdcb8ff92ac9d7b435f3146d4d6f6d255f92209c20",
+  "sampleAuditId": 0,
+  "sampleRegistrationTransaction": "0x36969370d1c0539de97733da18fa875532e37966c9edbf6024f41d1bf7d213fa"
+}

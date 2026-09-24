@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+proofs/
+preview.png
+__pycache__/
+*.pyc

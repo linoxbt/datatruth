@@ -1,0 +1,23 @@
+{
+  "name": "datatruth",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "server": "node --env-file=.env agent/server.js",
+    "test": "node --test tests/*.test.js",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "csv-parse": "^5.6.0",
+    "genlayer-js": "^2.0.0-rc.1",
+    "ipfs-only-hash": "^4.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "ethers": "^6.17.0",
+    "genlayer": "^0.40.0-rc.3",
+    "vite": "^5.4.0"
+  }
+}
