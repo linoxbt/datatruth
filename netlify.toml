@@ -1,0 +1,18 @@
+[build]
+command = "npm run build"
+publish = "dist"
+
+[build.environment]
+NODE_VERSION = "22"
+VITE_GENLAYER_CONTRACT = "0x29d3A94bEC1A28F61bd7BA4Cbc47Ba6878Ef259B"
+VITE_GENLAYER_NETWORK = "studio-dev"
+VITE_BOND_GEN = "0.01"
+
+[functions]
+directory = "netlify/functions"
+node_bundler = "esbuild"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200

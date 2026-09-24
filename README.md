@@ -50,6 +50,14 @@ Set `VITE_GENLAYER_CONTRACT` to the finalized Intelligent Contract address, `VIT
 
 The UI waits for GenLayer transaction finalization. Its View button reads the current registry record. The CLI account keystore and password are local to the deployer machine and must never be committed. For a smoke registration with that local account, set `DATATRUTH_KEYSTORE` and `DATATRUTH_PASSWORD_FILE` to their paths and run `node --env-file=.env scripts/register-sample.mjs`.
 
+## Deploy the frontend and auditor to Netlify
+
+The included `netlify.toml` builds the Vite frontend into `dist`, bundles `netlify/functions/audit.js`, and routes `/api/audit` to that function. The public Studio Next address, network, and bond are set as build variables. Connect this repository to a Netlify site, then deploy from `main` or run `netlify deploy --build --prod` from a linked checkout.
+
+For publishable audits, set `PINATA_JWT` as a **Netlify environment variable** for Functions. The auditor pins the exact proof bytes to public IPFS as CIDv0 and checks the returned CID. Do not put this JWT in `netlify.toml`, `.env.example`, or a `VITE_` variable. Without `PINATA_JWT`, the deployed endpoint still computes metrics and a local CID, but the UI labels it an unpublished preview and disables registration. A publicly reachable Kubo API can also be supplied as `IPFS_API_URL`; `127.0.0.1` refers to the Netlify function container and cannot reach this workstation's Kubo daemon.
+
+The serverless function accepts only the listed HTTPS dataset hosts and files up to 1 MB. Update the allowlist in `agent/audit.js` to support more sources. The contract resolves proofs through `gateway.pinata.cloud`, so verify that gateway can retrieve each new CID before relying on a challenge verdict.
+
 ## Verify
 
 ```bash
