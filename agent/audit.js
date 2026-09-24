@@ -32,7 +32,8 @@ export async function fetchCsv(url) {
   if (!['raw.githubusercontent.com', 'gist.githubusercontent.com', 'people.sc.fsu.edu', 'data.gov'].includes(parsed.hostname)) {
     throw new Error('Dataset host is not on the demo allowlist');
   }
-  const response = await fetch(url, { signal: AbortSignal.timeout(15000), redirect: 'error' });
+  const response = await fetch(url, { signal: AbortSignal.timeout(15000), redirect: 'manual' });
+  if (response.status >= 300 && response.status < 400) throw new Error('Dataset redirect not allowed');
   if (!response.ok) throw new Error(`Dataset returned HTTP ${response.status}`);
   const length = Number(response.headers.get('content-length') || 0);
   if (length > MAX_BYTES) throw new Error('Dataset exceeds the 1 MB demo limit');

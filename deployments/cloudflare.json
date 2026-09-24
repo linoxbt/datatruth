@@ -1,0 +1,9 @@
+{
+  "platform": "Cloudflare Workers",
+  "worker": "datatruth",
+  "accountId": "0446bebba68406724fdea3efef6b76d4",
+  "url": "https://datatruth.alemzdelight.workers.dev",
+  "versionId": "163c0549-84f8-40b6-84fd-4c5f3089333c",
+  "contract": "0x29d3A94bEC1A28F61bd7BA4Cbc47Ba6878Ef259B",
+  "network": "studio-dev"
+}

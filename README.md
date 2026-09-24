@@ -58,6 +58,22 @@ For publishable audits, set `PINATA_JWT` as a **Netlify environment variable** f
 
 The serverless function accepts only the listed HTTPS dataset hosts and files up to 1 MB. Update the allowlist in `agent/audit.js` to support more sources. The contract resolves proofs through `gateway.pinata.cloud`, so verify that gateway can retrieve each new CID before relying on a challenge verdict.
 
+## Deploy to Cloudflare Workers
+
+`wrangler.jsonc` explicitly configures a Worker named `datatruth` with the Vite `dist` directory as static assets and `/api/audit` as a Worker route. This avoids Wrangler's framework auto-configuration, which requires Vite 6 or newer. The frontend falls back to `deployments/studio-dev.json` for its public contract settings when no `VITE_` build variables are supplied.
+
+The deployed Worker is at [datatruth.alemzdelight.workers.dev](https://datatruth.alemzdelight.workers.dev). Its initial version and Cloudflare account are recorded in [`deployments/cloudflare.json`](deployments/cloudflare.json).
+
+```bash
+npm ci
+npm run build
+npx wrangler deploy --dry-run
+npx wrangler login --device
+npx wrangler deploy
+```
+
+Set `PINATA_JWT` as a Cloudflare Worker secret before publishing new audits: `npx wrangler secret put PINATA_JWT`. The local `.env` file is only for development and is not deployed as a secret. Without hosted IPFS pinning, the Worker can calculate a preview CID but will not enable registration. The sample audit ID `0` can still be viewed on Studio Next. The provider wallet must connect to the same Studio Next network and hold test GEN for bonds and fees.
+
 ## Verify
 
 ```bash

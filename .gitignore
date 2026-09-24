@@ -5,3 +5,4 @@ proofs/
 preview.png
 __pycache__/
 *.pyc
+.wrangler/

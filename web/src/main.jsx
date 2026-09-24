@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createClient } from 'genlayer-js';
 import { studionet, testnetBradbury, testnetAsimov, studioDevnet } from 'genlayer-js/chains';
+import deployment from '../../deployments/studio-dev.json';
 import './style.css';
 
-const contract = import.meta.env.VITE_GENLAYER_CONTRACT;
-const network = import.meta.env.VITE_GENLAYER_NETWORK || 'studionet';
+const contract = import.meta.env.VITE_GENLAYER_CONTRACT || deployment.contract;
+const network = import.meta.env.VITE_GENLAYER_NETWORK || deployment.network;
 const chain = network === 'studio-dev' ? studioDevnet : network === 'testnet-bradbury' ? testnetBradbury : network === 'testnet-asimov' ? testnetAsimov : studionet;
 const walletNetwork = network === 'studio-dev' ? 'studioDevnet' : network === 'testnet-bradbury' ? 'testnetBradbury' : network === 'testnet-asimov' ? 'testnetAsimov' : network;
-const bond = BigInt(Math.round(Number(import.meta.env.VITE_BOND_GEN || '0.01') * 1e18));
+const bond = import.meta.env.VITE_BOND_GEN ? BigInt(Math.round(Number(import.meta.env.VITE_BOND_GEN) * 1e18)) : BigInt(deployment.bondWei);
 
 async function walletClient() {
   if (!window.ethereum) throw new Error('Install an EIP-1193 wallet to send GenLayer transactions');
