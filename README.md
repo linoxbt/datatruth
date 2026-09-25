@@ -5,6 +5,7 @@ DataTruth is a Studio Next prototype for auditable public CSV snapshots. It coun
 ## Current deployment
 
 - Frontend and auditor: [Cloudflare Worker](https://datatruth.alemzdelight.workers.dev/). The Worker currently has **no `PINATA_JWT` secret**, so live audits are previews and cannot be registered from the UI.
+- Pages: `/` introduces the proof flow and completed verdicts, `/docs` explains the protocol and its current limits, and `/app` is the audit and challenge workspace. All three share the same responsive design system.
 - Active Studio Next contract: `0xCBC1Da22dB670Fd8E37B9E6738d2f8592C8a9f6e` on `studio-dev` (chain ID 61997). The full manifest is [`deployments/studio-dev-v2.json`](deployments/studio-dev-v2.json).
 - Audit ID 0 finished **Verified**; audit ID 1 finished **Rejected**. Both 0.01 GEN bond payouts were observed, leaving the active contract balance at zero. Transaction hashes are in the manifest.
 - The original contract and V2.0 test deployment remain accessible at the addresses in [`deployments/studio-dev.json`](deployments/studio-dev.json) and [`deployments/studio-dev-v2-legacy.json`](deployments/studio-dev-v2-legacy.json). Each has a Pending test audit with a 0.01 test GEN bond. Their deployer can call `release_unchallenged(0)` after seven days from registration, provided no challenge occurs. They are not the frontend's active contract.
