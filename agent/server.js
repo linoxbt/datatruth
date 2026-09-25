@@ -1,6 +1,7 @@
 import http from 'node:http';
-import { makeProof, fetchCsv } from './audit.js';
+import { makeProof, fetchCsv, isImmutableSource } from './audit.js';
 import { publishProof } from './publish.js';
+import { HttpError } from './http.js';
 
 const port = Number(process.env.PORT || 8787);
 
@@ -16,18 +17,23 @@ const server = http.createServer(async (req, res) => {
   }
   if (req.method !== 'POST' || req.url !== '/api/audit') return json(res, 404, { error: 'Not found' });
   try {
-    let input = '';
+    const chunks = [];
+    let size = 0;
     for await (const chunk of req) {
-      input += chunk;
-      if (input.length > 4096) throw new Error('Request too large');
+      size += chunk.length;
+      if (size > 4096) throw new HttpError(413, 'Request too large');
+      chunks.push(chunk);
     }
-    const { url } = JSON.parse(input);
+    let payload;
+    try { payload = JSON.parse(Buffer.concat(chunks).toString('utf8')); }
+    catch { throw new HttpError(400, 'Invalid JSON request'); }
+    const { url } = payload;
     const raw = await fetchCsv(url);
     const { proof, body, proofSha256 } = makeProof(url, raw);
     const { cid, published } = await publishProof(body);
-    return json(res, 200, { cid, published, proofSha256, metrics: proof.metrics, rawSha256: proof.rawSha256, sourceUrl: url, proof: published ? undefined : proof });
+    return json(res, 200, { cid, published, registrable: isImmutableSource(url), proofSha256, metrics: proof.metrics, rawSha256: proof.rawSha256, sourceUrl: url, proof: published ? undefined : proof });
   } catch (error) {
-    return json(res, 400, { error: error.message });
+    return json(res, error.status || 400, { error: error.message });
   }
 });
 

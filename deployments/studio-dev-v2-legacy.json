@@ -1,0 +1,15 @@
+{
+  "network": "studio-dev",
+  "chainId": 61997,
+  "rpc": "https://studio-dev.genlayer.com/api",
+  "contract": "0x69E2713A6FaAcD52537fdbDd8417475C06dF5073",
+  "deployer": "0x9e87Cadef97d0BF53BD72f55242a37c21318a230",
+  "transaction": "0xd453648d1d7df63d0675cb638de859f74ec53d865d5b2bab795273a053c05a35",
+  "bondWei": "10000000000000000",
+  "version": 2,
+  "sampleSourceUrl": "https://raw.githubusercontent.com/linoxbt/datatruth/d96a35fec007551fdfd677f7420f3fe1b39a9dc0/datasets/airtravel.csv",
+  "sampleProofCid": "QmUdU5hXqsFQmVU6w79WvXcV6RCD5RRWJS6TF49HzHv3rf",
+  "sampleProofSha256": "10fef1d9eae3a4b5a518ac841d86802530ff07f017360613374e995b1418bb50",
+  "sampleAuditId": 0,
+  "sampleRegistrationTransaction": "0x4c93f8db5308925bec6923fb512b8130e9a78752e1fa0d1c323eb2db118e1a5d"
+}

@@ -1,84 +1,61 @@
 # DataTruth
 
-DataTruth audits a public CSV, creates a content-addressed evidence file, and lets a GenLayer Intelligent Contract decide whether a challenged audit is internally valid. The provider deposits a native GEN bond. A valid audit returns it to the provider; a falsified audit awards it to the challenger. The provider may reclaim an unchallenged bond after seven days.
+DataTruth is a Studio Next prototype for auditable public CSV snapshots. It counts rows, columns, missing cells and duplicate rows, hashes the exact downloaded UTF-8 bytes, and publishes a JSON proof to IPFS when a pinning service is configured. A GenLayer Intelligent Contract holds a native GEN bond. A challenger files an independently reproduced proof of an immutable GitHub commit URL. GenLayer validators check that proof against GitHub, compare the provider's proof, and send the bond to the provider (Verified) or challenger (Rejected).
 
-## Architecture
+## Current deployment
 
-1. The Node auditor downloads an allowlisted HTTPS CSV (1 MB maximum), parses quoted CSV fields, and counts rows, columns, missing values, and duplicate rows.
-2. It builds a JSON proof with the CSV snapshot, metrics, source URL, and SHA-256 digest. With `IPFS_API_URL` configured, it uploads and pins the exact bytes to a Kubo-compatible IPFS API, checking the returned CID.
-3. The provider registers the CID and proof hash with `register_audit`, sending the configured GEN bond. The contract assigns an audit ID and stores a Pending record.
-4. A third party calls `challenge`. Anyone then calls `resolve`; GenLayer validators independently fetch the proof through the IPFS gateway and agree on its validity with `strict_eq`. The contract verifies the proof hash and recomputes the CSV statistics before scheduling the bond payment on finality.
+- Frontend and auditor: [Cloudflare Worker](https://datatruth.alemzdelight.workers.dev/). The Worker currently has **no `PINATA_JWT` secret**, so live audits are previews and cannot be registered from the UI.
+- Active Studio Next contract: `0xCBC1Da22dB670Fd8E37B9E6738d2f8592C8a9f6e` on `studio-dev` (chain ID 61997). The full manifest is [`deployments/studio-dev-v2.json`](deployments/studio-dev-v2.json).
+- Audit ID 0 finished **Verified**; audit ID 1 finished **Rejected**. Both 0.01 GEN bond payouts were observed, leaving the active contract balance at zero. Transaction hashes are in the manifest.
+- The original contract and V2.0 test deployment remain accessible at the addresses in [`deployments/studio-dev.json`](deployments/studio-dev.json) and [`deployments/studio-dev-v2-legacy.json`](deployments/studio-dev-v2-legacy.json). Each has a Pending test audit with a 0.01 test GEN bond. Their deployer can call `release_unchallenged(0)` after seven days from registration, provided no challenge occurs. They are not the frontend's active contract.
 
-The audit ID is a GenLayer registry record. This MVP does **not** mint an ERC-721. It also checks proof integrity and reproducibility, **not** truthfulness or demographic bias of the source dataset. A source URL is recorded for provenance but is not cryptographic proof that the CSV came from that URL. For stronger provenance, use a signed snapshot or immutable source reference.
+Studio Next is a development preview, not a production network. Studio does not support the Solidity ERC-721 and EVM adapter flow proposed in the initial blueprint. This implementation uses a GenLayer-native registry and dispute method instead. It is **not an NFT** and should not be described as one.
 
-## Run locally
+## How the active flow works
 
-Requirements: Node 20+, npm, a GenLayer compatible wallet, and a running Kubo IPFS daemon with API access. For an audit preview, Kubo is optional; a locally computed CID is shown, but registration is disabled until the proof is published.
+1. `POST /api/audit` downloads a CSV from an allowlisted HTTPS host, refusing redirects and responses larger than 1 MB. It computes reproducible metrics and an exact raw-byte SHA-256.
+2. The auditor serializes the CSV snapshot, source URL and metrics into a proof. It computes a CIDv0 using the maintained UnixFS importer. If `PINATA_JWT` or `IPFS_API_URL` is configured, it pins the same bytes and checks the returned CID. Otherwise it returns a clearly labeled preview.
+3. Registration is enabled only for an IPFS-published proof of a `raw.githubusercontent.com` URL pinned to a full 40-character commit SHA. The provider sends the configured 0.01 GEN bond to `register_audit`.
+4. Within seven days, a different account may call `file_claim(audit_id, competing_cid, competing_proof_sha256)`. Validators fetch the competing proof and independently fetch the immutable GitHub source. An invalid claim fails before a dispute is opened.
+5. Anyone can call `resolve(audit_id)`. Validators check the provider's proof against the proven source hash, then set Verified or Rejected and emit the bond transfer to the provider or challenger. A missing provider proof can be retried; after 30 days from challenge it is rejected for nonavailability.
+6. If nobody challenges within seven days, only the provider can call `release_unchallenged(audit_id)` and reclaim the bond. The status is Unchallenged, not Verified.
 
-```bash
-cp .env.example .env
-npm install
-npm run server
-npm run dev
-```
+The UI shows the submitted transaction hash immediately and checks both finality and execution success. A timeout leaves the hash available for status checking; do not blindly resubmit the write. The claim panel accepts a competing proof CID and SHA-256. A published audit result can fill these fields. Challenged records poll for status changes.
 
-Open the URL printed by Vite. The sample public CSV URL is prefilled. Set `IPFS_API_URL=http://127.0.0.1:5001` in `.env` for a local Kubo daemon. The API is called by the Node server, so browser CORS configuration is unnecessary.
+## Development
 
-To start Kubo with Docker and persistent storage:
+Node 22 or later is required. Use `npm ci`, `npm test`, `npm run build`, then `npm run server` and `npm run dev` in separate terminals. Copy `.env.example` to `.env` for local settings. The local auditor uses `IPFS_API_URL=http://127.0.0.1:5001` by default; run a private Kubo API at that address to publish locally. The Cloudflare Worker cannot reach your machine's localhost.
 
-```bash
-docker volume create datatruth_ipfs
-docker run -d --name datatruth-ipfs --restart unless-stopped \
-  -v datatruth_ipfs:/data/ipfs -p 127.0.0.1:5001:5001 \
-  -p 127.0.0.1:18080:8080 ipfs/kubo:latest
-```
+The sample CSV is [`datasets/airtravel.csv`](datasets/airtravel.csv). Its immutable GitHub URL is prefilled in the UI. Local Kubo pinned the two proofs used in the on-chain tests, and the public Pinata gateway returned bytes matching their SHA-256 hashes. For durable hosted pinning, configure a pinning provider rather than relying on this workstation.
 
-The API and gateway are bound to localhost. Keep the API private; the public gateway URL used by the contract is separate.
+## Cloudflare deployment
 
-## Deploy to GenLayer
-
-The current deployment is on **Studio Next**, named `studio-dev` in the GenLayer CLI and SDK (chain ID 61997). Its address and deploy transaction are in [`deployments/studio-dev.json`](deployments/studio-dev.json). The constructor bond is in wei; `10000000000000000` is 0.01 GEN. The frontend defaults in `.env.example` point to this deployment.
-
-To deploy a separate copy using the included CLI version:
-
-```bash
-./node_modules/.bin/genlayer network set studio-dev
-./node_modules/.bin/genlayer deploy --contract contracts/DataTruth.py --args 10000000000000000
-```
-
-Set `VITE_GENLAYER_CONTRACT` to the finalized Intelligent Contract address, `VITE_GENLAYER_NETWORK=studio-dev`, and `VITE_BOND_GEN` to the human-readable bond. Restart Vite. Connect an EIP-1193 wallet with enough Studio Next test GEN for the bond and GenLayer protocol fees. Studio Next account balances and deployments may reset; use the deployment manifest as the recorded result of this build.
-
-The UI waits for GenLayer transaction finalization. Its View button reads the current registry record. The CLI account keystore and password are local to the deployer machine and must never be committed. For a smoke registration with that local account, set `DATATRUTH_KEYSTORE` and `DATATRUTH_PASSWORD_FILE` to their paths and run `node --env-file=.env scripts/register-sample.mjs`.
-
-## Deploy the frontend and auditor to Netlify
-
-The included `netlify.toml` builds the Vite frontend into `dist`, bundles `netlify/functions/audit.js`, and routes `/api/audit` to that function. The public Studio Next address, network, and bond are set as build variables. Connect this repository to a Netlify site, then deploy from `main` or run `netlify deploy --build --prod` from a linked checkout.
-
-For publishable audits, set `PINATA_JWT` as a **Netlify environment variable** for Functions. The auditor pins the exact proof bytes to public IPFS as CIDv0 and checks the returned CID. Do not put this JWT in `netlify.toml`, `.env.example`, or a `VITE_` variable. Without `PINATA_JWT`, the deployed endpoint still computes metrics and a local CID, but the UI labels it an unpublished preview and disables registration. A publicly reachable Kubo API can also be supplied as `IPFS_API_URL`; `127.0.0.1` refers to the Netlify function container and cannot reach this workstation's Kubo daemon.
-
-The serverless function accepts only the listed HTTPS dataset hosts and files up to 1 MB. Update the allowlist in `agent/audit.js` to support more sources. The contract resolves proofs through `gateway.pinata.cloud`, so verify that gateway can retrieve each new CID before relying on a challenge verdict.
-
-## Deploy to Cloudflare Workers
-
-`wrangler.jsonc` explicitly configures a Worker named `datatruth` with the Vite `dist` directory as static assets and `/api/audit` as a Worker route. This avoids Wrangler's framework auto-configuration, which requires Vite 6 or newer. The frontend falls back to `deployments/studio-dev.json` for its public contract settings when no `VITE_` build variables are supplied.
-
-The deployed Worker is at [datatruth.alemzdelight.workers.dev](https://datatruth.alemzdelight.workers.dev). Its initial version and Cloudflare account are recorded in [`deployments/cloudflare.json`](deployments/cloudflare.json).
+`wrangler.jsonc` serves the Vite `dist` assets and routes `/api/audit` to the Worker. It includes global and per-client rate limits plus a Durable Object that caps publishing attempts at 50 per UTC day across Cloudflare locations. The short-term limits are permissive and local to each Cloudflare location. The Worker has logs and traces enabled.
 
 ```bash
 npm ci
+npm test
 npm run build
 npx wrangler deploy --dry-run
-npx wrangler login --device
+npx wrangler secret put PINATA_JWT
 npx wrangler deploy
 ```
 
-Set `PINATA_JWT` as a Cloudflare Worker secret before publishing new audits: `npx wrangler secret put PINATA_JWT`. The local `.env` file is only for development and is not deployed as a secret. Without hosted IPFS pinning, the Worker can calculate a preview CID but will not enable registration. The sample audit ID `0` can still be viewed on Studio Next. The provider wallet must connect to the same Studio Next network and hold test GEN for bonds and fees.
+Enter the JWT only at Wrangler's private prompt. Never place it in a `VITE_` variable, Git, or chat. Verify `npx wrangler secret list --name datatruth` lists `PINATA_JWT`, then run a live audit and confirm `published: true` before registering. The sample proof can be viewed without a new pin.
 
-## Verify
+## Netlify
 
-```bash
-npm test
-npm run build
-```
+`netlify.toml` and `netlify/functions/audit.js` remain configured. Netlify deployment is currently paused by the account's credit limit, so this path has not been validated live. A Netlify deploy also needs a `PINATA_JWT` function environment variable. Its public audit endpoint does not yet have platform-backed rate limiting; do not enable paid pinning there without adding abuse controls.
 
-The contract uses GenLayer native payable calls and finality-bound external value transfers. It does not depend on an undocumented Solidity `adjudicate` interface. Studio simulates GEN balances; it does not run an EVM escrow contract. Its runtime dependency pin targets the Studio Next runner used at deployment time; local `genvm-lint` installations with a different runner pin may fail to load it.
+## Contract deployment and tests
+
+[`contracts/DataTruthV2.py`](contracts/DataTruthV2.py) is the active contract source. [`scripts/deploy-v2.mjs`](scripts/deploy-v2.mjs) deploys it to Studio Next using a local encrypted keystore and a separate password file. Set `DATATRUTH_KEYSTORE` and `DATATRUTH_PASSWORD_FILE` to their paths. Never commit either file. The deploy script verifies the transaction and writes `deployments/studio-dev-v2.json`; check any existing test bonds before replacing an address. The scripts `register-sample.mjs`, `file-claim.mjs` and `resolve-claim.mjs` execute the corresponding writes, including GenLayer's message allocation tree for bond transfers.
+
+The test cycle was performed on Studio Next: register valid proof → file independently reproduced claim → resolve Verified; register intentionally false metrics → file valid claim → resolve Rejected. The active contract balance was zero afterward and the challenger balance rose by 0.01 GEN on rejection. Automated tests cover CSV parsing, byte integrity, CID calculation, URL eligibility, API routing, validation and size limits. The on-chain transactions provide integration evidence but are not a substitute for a formal contract audit.
+
+## Scope and limitations
+
+- The current metrics count duplicates but do not export a cleaned dataset. A demographic bias scan needs a declared protected attribute and outcome definition; none is inferred from arbitrary CSV columns.
+- The contract proves an immutable GitHub source snapshot and reproducible metrics when challenged. Pending and Unchallenged records are **not verified quality guarantees**. It does not prove a model trained on that data is unbiased or fit for use.
+- No ERC-721, automated schedule, QR code or GenLayer event listener is implemented. The registry uses audit IDs and the UI polls challenged records.
+- Hosted IPFS pinning, stronger bot protection for a commercial launch, Netlify deployment, and production network migration remain outstanding. See [`AUDIT_STATUS.md`](AUDIT_STATUS.md).

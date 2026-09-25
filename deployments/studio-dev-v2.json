@@ -1,0 +1,21 @@
+{
+  "network": "studio-dev",
+  "chainId": 61997,
+  "rpc": "https://studio-dev.genlayer.com/api",
+  "contract": "0xCBC1Da22dB670Fd8E37B9E6738d2f8592C8a9f6e",
+  "deployer": "0x9e87Cadef97d0BF53BD72f55242a37c21318a230",
+  "transaction": "0xdce3bf68968cb889817718534974853f8dd7bc2b0ba735c3fe0694fa34fbb1d0",
+  "bondWei": "10000000000000000",
+  "version": "2.1",
+  "sampleSourceUrl": "https://raw.githubusercontent.com/linoxbt/datatruth/d96a35fec007551fdfd677f7420f3fe1b39a9dc0/datasets/airtravel.csv",
+  "sampleProofCid": "QmUdU5hXqsFQmVU6w79WvXcV6RCD5RRWJS6TF49HzHv3rf",
+  "sampleProofSha256": "10fef1d9eae3a4b5a518ac841d86802530ff07f017360613374e995b1418bb50",
+  "verifiedAuditId": 0,
+  "verifiedRegistrationTransaction": "0x8232fdbcc84a9d8eee91fdc59583abe459b138d1f3849d7310a7487932ed85f8",
+  "verifiedClaimTransaction": "0x28100e8bb36b9b1f37ae6cf7da2635a493c1bc8a2bf084e04ed43aba7821fb08",
+  "verifiedResolveTransaction": "0x516ae2dfc621f141d345e07f8f4a63e0965da9e5dbaa0be475d5f441cb43307b",
+  "rejectedAuditId": 1,
+  "rejectedRegistrationTransaction": "0xeef27eecbd28ffcb6552b354d405107506f8e37e58ab13bd0a59d766e077dce2",
+  "rejectedClaimTransaction": "0xcd4aa90c554b87c4dba5b73e66cc99fc0046126eaf57ab77fee834984373933d",
+  "rejectedResolveTransaction": "0x94d78366033c58134a6035554488e252d3e712f8f4c76829923e45b8c899ba5f"
+}

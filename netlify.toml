@@ -4,13 +4,25 @@ publish = "dist"
 
 [build.environment]
 NODE_VERSION = "22"
-VITE_GENLAYER_CONTRACT = "0x29d3A94bEC1A28F61bd7BA4Cbc47Ba6878Ef259B"
+VITE_GENLAYER_CONTRACT = "0xCBC1Da22dB670Fd8E37B9E6738d2f8592C8a9f6e"
 VITE_GENLAYER_NETWORK = "studio-dev"
 VITE_BOND_GEN = "0.01"
 
 [functions]
 directory = "netlify/functions"
 node_bundler = "esbuild"
+
+[[redirects]]
+from = "/api/audit"
+to = "/.netlify/functions/audit"
+status = 200
+force = true
+
+[[redirects]]
+from = "/api/*"
+to = "/api-404.json"
+status = 404
+force = true
 
 [[redirects]]
 from = "/*"
