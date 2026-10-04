@@ -44,10 +44,11 @@ try {
   if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) throw new Error('Docs page mobile horizontal overflow');
   await page.getByRole('link', { name: 'Launch workspace' }).click();
   await page.getByRole('heading', { name: 'Audit workspace.' }).waitFor();
-  await page.getByRole('combobox', { name: 'Choose wallet' }).selectOption('injected');
+  await page.getByText('POWERED BY REOWN APPKIT').waitFor({ timeout: 30000 });
   await page.getByRole('button', { name: 'Connect wallet' }).click();
-  await page.getByText('0x1111…1111').waitFor();
-  if (await page.evaluate(() => window.walletMethods.some(method => method.toLowerCase().includes('snap')))) throw new Error('Wallet connection called a Snap method');
+  await page.locator('w3m-modal.open').waitFor({ timeout: 15000 });
+  await page.keyboard.press('Escape');
+  await page.locator('w3m-modal.open').waitFor({ state: 'hidden', timeout: 15000 });
   await page.getByRole('button', { name: /Run audit/ }).click();
   await page.getByText('LOCAL PREVIEW').waitFor({ timeout: 60000 });
   if (!(await page.getByText('QmUdU5hXqsFQmVU6w79WvXcV6RCD5RRWJS6TF49HzHv3rf').isVisible())) throw new Error('Sample proof CID is missing');

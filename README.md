@@ -5,7 +5,7 @@ DataTruth is a Studio Next prototype for auditable public CSV snapshots. It coun
 ## Current deployment
 
 - Frontend and auditor: [Cloudflare Worker](https://datatruth.alemzdelight.workers.dev/). The Worker currently has **no `PINATA_JWT` secret**, so live audits are previews and cannot be registered from the UI.
-- Wallet: Reown AppKit integration is built and locally verified, but the public build uses the labeled browser-wallet fallback until a dedicated Reown Project ID is provided for DataTruth.
+- Wallet: Reown AppKit uses the existing public Project ID shared by GenSupply and GenShield. The production Vite build reads it from `.env.production`; `wrangler.jsonc` also records it as a Cloudflare environment variable. The browser-wallet fallback is used only when the build has no Project ID.
 - Pages: `/` introduces the product; `/how-it-works` explains the proof flow; `/verdicts` links to completed audits; `/docs` covers the protocol and limits; `/faq` answers common questions; `/about` explains the project; and `/app` is the audit and challenge workspace. A mobile hamburger menu connects them all.
 - Active Studio Next contract: `0xCBC1Da22dB670Fd8E37B9E6738d2f8592C8a9f6e` on `studio-dev` (chain ID 61997). The full manifest is [`deployments/studio-dev-v2.json`](deployments/studio-dev-v2.json).
 - Audit ID 0 finished **Verified**; audit ID 1 finished **Rejected**. Both 0.01 GEN bond payouts were observed, leaving the active contract balance at zero. Transaction hashes are in the manifest.
@@ -24,9 +24,9 @@ Studio Next is a development preview, not a production network. Studio does not 
 
 The UI shows the submitted transaction hash immediately and checks both finality and execution success. A timeout leaves the hash available for status checking; do not blindly resubmit the write. The claim panel accepts a competing proof CID and SHA-256. A published audit result can fill these fields. Challenged records poll for status changes.
 
-The workspace uses Reown AppKit for wallet connection when `VITE_REOWN_PROJECT_ID` is set at build time. Create a dedicated project at the Reown Dashboard and allowlist the deployed origin. Reown's selected EIP-1193 provider is passed to `genlayer-js` for signing. Until a dedicated Project ID is configured, an explicitly labeled browser-wallet fallback remains available. Neither path calls MetaMask Snap methods. The wallet tests exercise chain switching, fee estimation, and write submission with a provider that deliberately rejects every unsupported method.
+The workspace uses Reown AppKit for wallet connection when `VITE_REOWN_PROJECT_ID` is set at build time. Reown's selected EIP-1193 provider is passed to `genlayer-js` for signing. An explicitly labeled browser-wallet fallback remains available for unconfigured local builds. Neither path calls MetaMask Snap methods. The wallet tests exercise chain switching, fee estimation, and write submission with a provider that deliberately rejects every unsupported method.
 
-For Reown deployment, set `VITE_REOWN_PROJECT_ID` in the build environment, then run `npm run deploy:cloudflare`. This ID is public frontend configuration, not a Worker secret. In Reown Dashboard, allowlist `https://datatruth.alemzdelight.workers.dev`. For local AppKit verification, run Vite with a Reown Project ID and run `npm run test:reown` against that local server; the test opens the Reown connect modal. Do not use Reown's documentation-only localhost Project ID for a public deployment.
+For Reown deployment, `.env.production` supplies `VITE_REOWN_PROJECT_ID` to Vite, and `wrangler.jsonc` supplies the same public value as a Cloudflare Worker variable. Run `npm run deploy:cloudflare` after changing either value. In Reown Dashboard, allowlist `https://datatruth.alemzdelight.workers.dev` if the shared project restricts origins. `npm run test:reown` checks that the modal opens. The Project ID is public frontend configuration, not a Worker secret.
 
 ## Development
 

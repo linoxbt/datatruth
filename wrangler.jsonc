@@ -4,6 +4,7 @@
   "main": "./worker/entry.js",
   "compatibility_date": "2026-09-24",
   "compatibility_flags": ["nodejs_compat"],
+  "vars": { "VITE_REOWN_PROJECT_ID": "f0d6f8162be1beccf221b4e2f8bd7026" },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
