@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { createAppKit, useAppKit, useAppKitAccount, useAppKitProvider } from '@reown/appkit/react';
+import { createAppKit, useAppKit, useAppKitAccount, useAppKitProvider, useDisconnect } from '@reown/appkit/react';
 import { defineChain } from '@reown/appkit/networks';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 
@@ -32,6 +32,7 @@ createAppKit({
 
 export default function ReownWallet({ onChange }) {
   const { open } = useAppKit();
+  const { disconnect } = useDisconnect();
   const { address, isConnected } = useAppKitAccount();
   const { walletProvider } = useAppKitProvider('eip155');
   const callback = useRef(onChange);
@@ -43,5 +44,5 @@ export default function ReownWallet({ onChange }) {
     return () => callback.current(null);
   }, [address, isConnected, walletProvider]);
 
-  return <section className="wallet-panel" aria-label="Wallet connection"><div><span className="eyebrow">POWERED BY REOWN APPKIT</span><strong>{isConnected && address ? `${address.slice(0, 6)}…${address.slice(-4)}` : 'Connect to transact'}</strong><p>Choose a wallet in Reown. Reads and audit previews work without a wallet; writes require Studio Next and test GEN.</p></div><div className="wallet-controls"><button type="button" onClick={() => open(isConnected ? { view: 'Account' } : undefined)}>{isConnected ? 'Manage wallet' : 'Connect wallet'}</button></div></section>;
+  return <section className="wallet-panel" aria-label="Wallet connection"><div><span className="eyebrow">POWERED BY REOWN APPKIT</span><strong>{isConnected && address ? `${address.slice(0, 6)}…${address.slice(-4)}` : 'Connect to transact'}</strong><p>Connect with Reown to send Studio Next transactions. Reads and audit previews work without a wallet.</p></div><div className="wallet-controls">{isConnected && address ? <button type="button" title="Disconnect wallet" onClick={() => disconnect()}>{address.slice(0, 6)}…{address.slice(-4)}</button> : <button type="button" onClick={() => open()}>Connect wallet</button>}</div></section>;
 }

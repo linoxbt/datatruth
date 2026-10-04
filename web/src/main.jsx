@@ -35,8 +35,6 @@ function auditId(value) {
 
 let selectedWallet = null;
 const ReownWallet = React.lazy(() => import('./reown.jsx'));
-const FallbackWallet = React.lazy(() => import('./fallback-wallet.jsx'));
-const fallbackChain = { id: deployment.chainId, name: 'GenLayer Studio Next', rpcUrls: { default: { http: [deployment.rpc] } }, nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 } };
 
 async function write(functionName, args, onSubmitted, value) {
   if (!contract) throw new Error('Set VITE_GENLAYER_CONTRACT in .env');
@@ -128,7 +126,7 @@ function AuditApp() {
 
   return <main className="app-shell">
     <div className="page-heading"><div><div className="eyebrow">WORKSPACE / DATASET AUDITOR</div><h1>Audit workspace<span className="period">.</span></h1><p>Inspect a public CSV, review its evidence, and explore GenLayer verdicts.</p></div><div className="network-badge"><span className="live-dot"/> STUDIO NEXT <small>CHAIN 61997</small></div></div>
-    <Suspense fallback={<section className="wallet-panel">Loading wallet connection…</section>}>{import.meta.env.VITE_REOWN_PROJECT_ID ? <ReownWallet onChange={wallet => { selectedWallet = wallet; }}/> : <FallbackWallet chain={fallbackChain} onChange={wallet => { selectedWallet = wallet; }}/>}</Suspense>
+    {import.meta.env.VITE_REOWN_PROJECT_ID ? <Suspense fallback={<section className="wallet-panel">Loading wallet connection…</section>}><ReownWallet onChange={wallet => { selectedWallet = wallet; }}/></Suspense> : <section className="wallet-panel" aria-label="Wallet connection"><div><span className="eyebrow">WALLET CONNECTION</span><strong>Wallet unavailable</strong><p>Set VITE_REOWN_PROJECT_ID to enable the Reown connect button. Read-only audits remain available.</p></div></section>}
     <div className="workspace-steps"><span><b>01</b> Audit dataset</span><i/><span><b>02</b> Publish proof</span><i/><span><b>03</b> Challenge & resolve</span></div>
     <div className="grid">
       <section className="card">

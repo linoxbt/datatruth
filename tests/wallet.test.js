@@ -1,20 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { connectWallet, ensureChain, submitWalletWrite } from '../web/src/wallet.js';
+import { ensureChain, submitWalletWrite } from '../web/src/wallet.js';
 
 const chain = { id: 61997, name: 'Studio Devnet', rpcUrls: { default: { http: ['https://studio-dev.genlayer.com/api'] } }, nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 } };
 const address = '0x1111111111111111111111111111111111111111';
 
-test('connects a standard wallet without calling any Snap method', async () => {
+test('accepts the Reown-selected provider without calling any Snap method', async () => {
   const methods = [];
   const provider = { request: async ({ method }) => {
     methods.push(method);
-    if (method === 'eth_requestAccounts') return [address];
     if (method === 'eth_chainId') return '0xf22d';
     throw new Error(`Unsupported: ${method}`);
   } };
-  assert.equal(await connectWallet(provider, chain), address);
-  assert.deepEqual(methods, ['eth_requestAccounts', 'eth_chainId']);
+  await ensureChain(provider, chain);
+  assert.deepEqual(methods, ['eth_chainId']);
 });
 
 test('adds an unknown chain, switches, and verifies the result', async () => {
@@ -54,14 +53,14 @@ test('wallet write estimates fees, uses the selected provider and reports the ha
   assert.deepEqual(received, { ...call, fees: { distribution: { leader: 1 }, feeValue: 5n, messageAllocations: [{ value: 1n }] } });
 });
 
-test('wallet rejection is surfaced without attempting a Snap fallback', async () => {
+test('chain request rejection is surfaced without attempting a Snap fallback', async () => {
   const methods = [];
   const provider = { request: async ({ method }) => {
     methods.push(method);
     throw Object.assign(new Error('User rejected request'), { code: 4001 });
   } };
-  await assert.rejects(connectWallet(provider, chain), /User rejected request/);
-  assert.deepEqual(methods, ['eth_requestAccounts']);
+  await assert.rejects(ensureChain(provider, chain), /User rejected request/);
+  assert.deepEqual(methods, ['eth_chainId']);
 });
 
 test('refuses a write when the wallet remains on the wrong chain', async () => {

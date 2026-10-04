@@ -45,6 +45,7 @@ try {
   await page.getByRole('link', { name: 'Launch workspace' }).click();
   await page.getByRole('heading', { name: 'Audit workspace.' }).waitFor();
   await page.getByText('POWERED BY REOWN APPKIT').waitFor({ timeout: 30000 });
+  if (await page.getByRole('combobox', { name: 'Choose wallet' }).count()) throw new Error('Obsolete wallet selector is still visible');
   await page.getByRole('button', { name: 'Connect wallet' }).click();
   await page.locator('w3m-modal.open').waitFor({ timeout: 15000 });
   await page.keyboard.press('Escape');
