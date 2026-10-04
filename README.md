@@ -23,6 +23,8 @@ Studio Next is a development preview, not a production network. Studio does not 
 
 The UI shows the submitted transaction hash immediately and checks both finality and execution success. A timeout leaves the hash available for status checking; do not blindly resubmit the write. The claim panel accepts a competing proof CID and SHA-256. A published audit result can fill these fields. Challenged records poll for status changes.
 
+The workspace discovers browser wallets through EIP-6963 and offers an injected-wallet fallback. Users select a wallet, connect an account, and switch or add the exact GenLayer chain before writing. The selected EIP-1193 provider is passed to `genlayer-js` for signing. This path does not call MetaMask Snap methods; a wallet that supports standard EIP-1193 account and chain requests can connect. The wallet tests exercise connection, chain switching, fee estimation, and write submission with a provider that deliberately rejects every unsupported method.
+
 ## Development
 
 Node 22 or later is required. Use `npm ci`, `npm test`, `npm run build`, then `npm run server` and `npm run dev` in separate terminals. Copy `.env.example` to `.env` for local settings. The local auditor uses `IPFS_API_URL=http://127.0.0.1:5001` by default; run a private Kubo API at that address to publish locally. The Cloudflare Worker cannot reach your machine's localhost.

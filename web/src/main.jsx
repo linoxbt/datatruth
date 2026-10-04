@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import deployment from '../../deployments/studio-dev-v2.json';
+import { connectWallet, discoverWallets, submitWalletWrite } from './wallet.js';
 import './style.css';
 
 const contract = import.meta.env.VITE_GENLAYER_CONTRACT || deployment.contract;
 const network = import.meta.env.VITE_GENLAYER_NETWORK || deployment.network;
 const chainName = { 'studio-dev': 'studioDevnet', 'testnet-bradbury': 'testnetBradbury', 'testnet-asimov': 'testnetAsimov', studionet: 'studionet' }[network];
-const walletNetwork = network === 'studio-dev' ? 'studioDevnet' : network === 'testnet-bradbury' ? 'testnetBradbury' : network === 'testnet-asimov' ? 'testnetAsimov' : network;
 function parseGen(value) {
   if (!/^(?:0|[1-9]\d*)(?:\.\d{1,18})?$/.test(value)) throw new Error('Invalid GEN bond amount');
   const [whole, fraction = ''] = value.split('.');
@@ -33,22 +33,14 @@ function auditId(value) {
   return id;
 }
 
-async function walletClient() {
-  const { createClient, chain } = await sdk();
-  if (!window.ethereum) throw new Error('Install an EIP-1193 wallet to send GenLayer transactions');
-  const [address] = await window.ethereum.request({ method: 'eth_requestAccounts' });
-  const client = createClient({ chain, account: address, provider: window.ethereum });
-  await client.connect(walletNetwork);
-  return client;
-}
+let selectedWallet = null;
 
 async function write(functionName, args, onSubmitted, value) {
   if (!contract) throw new Error('Set VITE_GENLAYER_CONTRACT in .env');
-  const client = await walletClient();
+  if (!selectedWallet) throw new Error('Connect a wallet before sending a transaction');
+  const { createClient, chain } = await sdk();
   const call = { address: contract, functionName, args, ...(value === undefined ? {} : { value }) };
-  const estimate = await client.estimateTransactionFeesForWrite(call);
-  const hash = await client.writeContract({ ...call, fees: { distribution: estimate.distribution, feeValue: estimate.feeValue, messageAllocations: estimate.messageAllocations } });
-  onSubmitted(hash);
+  const { client, hash } = await submitWalletWrite({ ...selectedWallet, chain, createClient, call, onSubmitted });
   const result = await client.waitForFinalization({ hash, interval: 2000, retries: 180 });
   const { isSuccessful } = await sdk();
   if (!isSuccessful(result)) {
@@ -60,6 +52,11 @@ async function write(functionName, args, onSubmitted, value) {
 }
 
 function AuditApp() {
+  const [wallets, setWallets] = useState([]);
+  const [walletId, setWalletId] = useState('');
+  const [walletAddress, setWalletAddress] = useState('');
+  const [walletBusy, setWalletBusy] = useState(false);
+  const [walletError, setWalletError] = useState('');
   const [url, setUrl] = useState('https://raw.githubusercontent.com/linoxbt/datatruth/d96a35fec007551fdfd677f7420f3fe1b39a9dc0/datasets/airtravel.csv');
   const [audit, setAudit] = useState(null);
   const [tokenId, setTokenId] = useState(() => new URLSearchParams(window.location.search).get('audit') || '0');
@@ -71,6 +68,38 @@ function AuditApp() {
   const [claimCid, setClaimCid] = useState('');
   const [claimHash, setClaimHash] = useState('');
   const [registeredId, setRegisteredId] = useState(null);
+
+  useEffect(() => discoverWallets(wallet => {
+    setWallets(current => {
+      if (current.some(item => item.id === wallet.id)) return current;
+      return [...current, wallet];
+    });
+  }), []);
+
+  useEffect(() => {
+    if (!walletId) return;
+    const wallet = wallets.find(item => item.id === walletId);
+    if (!wallet) return;
+    const clear = () => { selectedWallet = null; setWalletAddress(''); };
+    const onAccounts = accounts => { if (!accounts?.some(account => account.toLowerCase() === walletAddress.toLowerCase())) clear(); };
+    const onChain = chainId => { try { if (BigInt(chainId) !== BigInt(selectedWallet?.chainId || deployment.chainId)) clear(); } catch { clear(); } };
+    wallet.provider.on?.('accountsChanged', onAccounts);
+    wallet.provider.on?.('chainChanged', onChain);
+    wallet.provider.on?.('disconnect', clear);
+    return () => { wallet.provider.removeListener?.('accountsChanged', onAccounts); wallet.provider.removeListener?.('chainChanged', onChain); wallet.provider.removeListener?.('disconnect', clear); };
+  }, [walletId, wallets, walletAddress]);
+
+  async function attachWallet() {
+    setWalletError(''); setWalletBusy(true);
+    try {
+      const wallet = wallets.find(item => item.id === walletId);
+      const { chain } = await sdk();
+      const address = await connectWallet(wallet?.provider, chain);
+      selectedWallet = { provider: wallet.provider, address, chainId: chain.id };
+      setWalletAddress(address);
+    } catch (error) { setWalletError(error.shortMessage || error.message); }
+    finally { setWalletBusy(false); }
+  }
 
   useEffect(() => {
     if (!chainName || !record || record.status !== 'Challenged') return;
@@ -132,6 +161,7 @@ function AuditApp() {
 
   return <main className="app-shell">
     <div className="page-heading"><div><div className="eyebrow">WORKSPACE / DATASET AUDITOR</div><h1>Audit workspace<span className="period">.</span></h1><p>Inspect a public CSV, review its evidence, and explore GenLayer verdicts.</p></div><div className="network-badge"><span className="live-dot"/> STUDIO NEXT <small>CHAIN 61997</small></div></div>
+    <section className="wallet-panel" aria-label="Wallet connection"><div><span className="eyebrow">WALLET CONNECTION</span><strong>{walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}` : 'Connect to transact'}</strong><p>Reads and audit previews work without a wallet. Writes require Studio Next and test GEN.</p></div><div className="wallet-controls"><select aria-label="Choose wallet" value={walletId} onChange={e => { selectedWallet = null; setWalletAddress(''); setWalletId(e.target.value); }}><option value="">Choose wallet</option>{wallets.map(wallet => <option value={wallet.id} key={wallet.id}>{wallet.name}</option>)}</select>{walletAddress ? <button type="button" onClick={() => { selectedWallet = null; setWalletAddress(''); }}>Disconnect</button> : <button type="button" disabled={!walletId || walletBusy} onClick={attachWallet}>{walletBusy ? 'Connecting…' : 'Connect wallet'}</button>}</div>{walletError && <p className="wallet-error" role="alert">{walletError}</p>}</section>
     <div className="workspace-steps"><span><b>01</b> Audit dataset</span><i/><span><b>02</b> Publish proof</span><i/><span><b>03</b> Challenge & resolve</span></div>
     <div className="grid">
       <section className="card">
